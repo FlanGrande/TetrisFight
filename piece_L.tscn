@@ -2,7 +2,7 @@
 
 [ext_resource path="res://piece.tscn" type="PackedScene" id=1]
 
-[node name="piece_L" type="Node2D" index="0"]
+[node name="piece_L" type="Node2D"]
 
 [node name="piece" parent="." index="0" instance=ExtResource( 1 )]
 

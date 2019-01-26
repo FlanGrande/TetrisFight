@@ -5,7 +5,9 @@ extends Node2D
 # var b = "textvar"
 onready var number_of_possible_pieces = get_child_count();
 var piece_to_use = 0;
+var piece_node;
 var piece_to_return_as_a_node;
+
 
 func _ready():
 	# Called every time the node is added to the scene.
@@ -22,6 +24,7 @@ func generate_random_piece():
 	piece_to_use = randi() % number_of_possible_pieces;
 	
 	 #use that number to obtain a random piece node. Then get an instance of the node to use it elsewhere.
-	piece_to_return_as_a_node = get_node(get_children()[piece_to_use].get_name()).duplicate(true);
+	piece_node = get_children()[piece_to_use];
+	piece_to_return_as_a_node = piece_node.duplicate(true);	
 	
 	return piece_to_return_as_a_node;

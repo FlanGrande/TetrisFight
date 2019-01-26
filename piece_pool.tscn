@@ -1,9 +1,12 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://piece_pool.gd" type="Script" id=1]
 [ext_resource path="res://piece_L.tscn" type="PackedScene" id=2]
-[ext_resource path="res://piece_L_inv.tscn" type="PackedScene" id=3]
-[ext_resource path="res://piece_I.tscn" type="PackedScene" id=4]
+[ext_resource path="res://piece_L.gd" type="Script" id=3]
+[ext_resource path="res://piece_L_inv.tscn" type="PackedScene" id=4]
+[ext_resource path="res://piece_L_inv.gd" type="Script" id=5]
+[ext_resource path="res://piece_I.tscn" type="PackedScene" id=6]
+[ext_resource path="res://piece_I.gd" type="Script" id=7]
 
 [node name="piece_pool" type="Node2D"]
 
@@ -11,8 +14,20 @@ script = ExtResource( 1 )
 
 [node name="piece_L" parent="." index="0" instance=ExtResource( 2 )]
 
-[node name="piece_L_inv" parent="." index="1" instance=ExtResource( 3 )]
+script = ExtResource( 3 )
+width_in_blocks = 2
+height_in_blocks = 3
 
-[node name="piece_I" parent="." index="2" instance=ExtResource( 4 )]
+[node name="piece_L_inv" parent="." index="1" instance=ExtResource( 4 )]
+
+script = ExtResource( 5 )
+width_in_blocks = 2
+height_in_blocks = 3
+
+[node name="piece_I" parent="." index="2" instance=ExtResource( 6 )]
+
+script = ExtResource( 7 )
+width_in_blocks = 1
+height_in_blocks = 4
 
 
