@@ -1,22 +1,26 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://field.tscn" type="PackedScene" id=1]
 [ext_resource path="res://piece_pool.tscn" type="PackedScene" id=2]
+[ext_resource path="res://falling_piece.gd" type="Script" id=3]
 
 [node name="root" type="Node2D" index="0"]
 
 [node name="field" parent="." index="0" instance=ExtResource( 1 )]
 
-position = Vector2( 150, 390 )
+position = Vector2( 0, 0 )
 _sections_unfolded = [ "Material" ]
-
-[node name="Sprite" parent="field" index="0"]
-
-position = Vector2( -150, -390 )
 
 [node name="piece_pool" parent="." index="1" instance=ExtResource( 2 )]
 
 visible = false
 
+[node name="falling_piece" type="Node2D" parent="." index="2"]
 
-[editable path="field"]
+position = Vector2( 120, 0 )
+script = ExtResource( 3 )
+_sections_unfolded = [ "Transform" ]
+cell_size = 30
+update_rate_in_fps = 60
+
+

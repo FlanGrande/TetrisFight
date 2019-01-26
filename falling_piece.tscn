@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://falling_piece.gd" type="Script" id=1]
+
+[node name="falling_piece" type="Node2D"]
+
+position = Vector2( 150, 0 )
+script = ExtResource( 1 )
+
+
