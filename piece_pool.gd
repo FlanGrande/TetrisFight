@@ -23,7 +23,7 @@ func generate_random_piece():
 	#generate number based on root's children pieces number.
 	piece_to_use = randi() % number_of_possible_pieces;
 	
-	 #use that number to obtain a random piece node. Then get an instance of the node to use it elsewhere.
+	#use that number to obtain a random piece node. Then get an instance of the node to use it elsewhere.
 	piece_node = get_children()[piece_to_use];
 	piece_to_return_as_a_node = piece_node.duplicate(true);	
 	
