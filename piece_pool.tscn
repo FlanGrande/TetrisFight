@@ -1,20 +1,13 @@
-[gd_scene load_steps=16 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://piece_pool.gd" type="Script" id=1]
 [ext_resource path="res://piece_L.tscn" type="PackedScene" id=2]
-[ext_resource path="res://piece_L.gd" type="Script" id=3]
-[ext_resource path="res://piece_L_inv.tscn" type="PackedScene" id=4]
-[ext_resource path="res://piece_L_inv.gd" type="Script" id=5]
-[ext_resource path="res://piece_I.tscn" type="PackedScene" id=6]
-[ext_resource path="res://piece_I.gd" type="Script" id=7]
-[ext_resource path="res://piece_T.tscn" type="PackedScene" id=8]
-[ext_resource path="res://piece_T.gd" type="Script" id=9]
-[ext_resource path="res://piece_Z.tscn" type="PackedScene" id=10]
-[ext_resource path="res://piece_Z.gd" type="Script" id=11]
-[ext_resource path="res://piece_Z_inv.tscn" type="PackedScene" id=12]
-[ext_resource path="res://piece_Z_inv.gd" type="Script" id=13]
-[ext_resource path="res://piece_Box.tscn" type="PackedScene" id=14]
-[ext_resource path="res://piece_Box.gd" type="Script" id=15]
+[ext_resource path="res://piece_L_inv.tscn" type="PackedScene" id=3]
+[ext_resource path="res://piece_I.tscn" type="PackedScene" id=4]
+[ext_resource path="res://piece_T.tscn" type="PackedScene" id=5]
+[ext_resource path="res://piece_Z.tscn" type="PackedScene" id=6]
+[ext_resource path="res://piece_Z_inv.tscn" type="PackedScene" id=7]
+[ext_resource path="res://piece_Box.tscn" type="PackedScene" id=8]
 
 [node name="piece_pool" type="Node2D"]
 
@@ -23,44 +16,16 @@ _sections_unfolded = [ "Transform" ]
 
 [node name="piece_L" parent="." index="0" instance=ExtResource( 2 )]
 
-script = ExtResource( 3 )
-width_in_blocks = 2
-height_in_blocks = 3
+[node name="piece_L_inv" parent="." index="1" instance=ExtResource( 3 )]
 
-[node name="piece_L_inv" parent="." index="1" instance=ExtResource( 4 )]
+[node name="piece_I" parent="." index="2" instance=ExtResource( 4 )]
 
-script = ExtResource( 5 )
-width_in_blocks = 2
-height_in_blocks = 3
+[node name="piece_T" parent="." index="3" instance=ExtResource( 5 )]
 
-[node name="piece_I" parent="." index="2" instance=ExtResource( 6 )]
+[node name="piece_Z" parent="." index="4" instance=ExtResource( 6 )]
 
-script = ExtResource( 7 )
-width_in_blocks = 1
-height_in_blocks = 4
+[node name="piece_Z_inv" parent="." index="5" instance=ExtResource( 7 )]
 
-[node name="piece_T" parent="." index="3" instance=ExtResource( 8 )]
-
-script = ExtResource( 9 )
-width_in_blocks = 3
-height_in_blocks = 2
-
-[node name="piece_Z" parent="." index="4" instance=ExtResource( 10 )]
-
-script = ExtResource( 11 )
-width_in_blocks = 3
-height_in_blocks = 2
-
-[node name="piece_Z_inv" parent="." index="5" instance=ExtResource( 12 )]
-
-script = ExtResource( 13 )
-width_in_blocks = 3
-height_in_blocks = 2
-
-[node name="piece_Box" parent="." index="6" instance=ExtResource( 14 )]
-
-script = ExtResource( 15 )
-width_in_blocks = 2
-height_in_blocks = 2
+[node name="piece_Box" parent="." index="6" instance=ExtResource( 8 )]
 
 

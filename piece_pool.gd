@@ -6,7 +6,7 @@ extends Node2D
 onready var number_of_possible_pieces = get_child_count();
 var piece_to_use = 0;
 var piece_node;
-var piece_to_return_as_a_node;
+var piece_copy;
 
 
 func _ready():
@@ -25,6 +25,6 @@ func generate_random_piece():
 	
 	#use that number to obtain a random piece node. Then get an instance of the node to use it elsewhere.
 	piece_node = get_children()[piece_to_use];
-	piece_to_return_as_a_node = piece_node.duplicate(true);	
+	piece_copy = piece_node.duplicate(true);	
 	
-	return piece_to_return_as_a_node;
+	return piece_copy;

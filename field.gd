@@ -58,8 +58,19 @@ func initialize_matrix():
 
 # Place the piece into the board.
 func add_piece(piece, rotation_in_degrees):
-	piece.position.x = piece.position.x - position.x; #adjust piece coordinates to match field coordinates.
-	piece.position.y = piece.position.y - position.y; #adjust piece coordinates to match field coordinates.
-	print(rotation_in_degrees);
+	#print(rotation_in_degrees);
 	#piece.rotation_degrees = rotation_in_degrees; #adjust piece coordinates to match field coordinates.
-	add_child(piece);
+	transform_into_blocks(piece);
+	#add_child(piece);
+
+func transform_into_blocks(piece):
+	var children = piece.get_children();
+	#print(children[0].get_path());
+	for i in children.size():
+		print(children[i].get_name());
+		if(children[i].get_name().match("*piece*")):
+			var tmp_block = children[i].duplicate(true);
+			#TO DO: put the blocks in place, then enable their collision box
+			tmp_block.position.x = tmp_block.position.x - position.x; #adjust piece coordinates to match field coordinates.
+			tmp_block.position.y = tmp_block.position.y - position.y; #adjust piece coordinates to match field coordinates.
+			add_child(tmp_block);

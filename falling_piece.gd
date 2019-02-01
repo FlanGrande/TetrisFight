@@ -20,7 +20,7 @@ var origin = Vector2(150, 0);
 var piece_has_dropped = true;
 var piece_node;
 var piece_position;
-var piece_collision_detection_speed = Vector2(0, 1000);
+var piece_collision_detection_speed = 1000;
 
 # Field variables.
 var fall_update_rate_in_fps = 60;
@@ -31,7 +31,7 @@ func _ready():
 	randomize(true);
 	# Called every time the node is added to the scene.
 	# Initialization here
-	origin = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), 0);
+	origin = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), -60);
 	fall_update_rate_in_fps = field_node.fall_update_rate_in_fps;
 	cell_size = field_node.cell_size;
 	reinitialize();
@@ -51,7 +51,10 @@ func _process(delta):
 	pass
 
 func _physics_process(delta):
-	check_if_piece_will_collide(piece_collision_detection_speed, delta);
+	if(current_update_time == 1):
+		check_if_piece_will_collide(delta);
+	
+	#check_if_piece_will_collide_at_sides(Vector2(piece_collision_detection_speed, 0), delta);
 
 # Puts piece at the top.
 func reinitialize():
@@ -59,6 +62,8 @@ func reinitialize():
 	position = origin;
 	piece_has_dropped = false;
 	current_update_time = fall_update_rate_in_fps;
+	piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
+	piece_down_initial_lag = PIECE_DOWN_MAX_LAG;
 
 # Generate a piece for the player.
 func generate_piece():
@@ -68,6 +73,7 @@ func generate_piece():
 # Update fall of the piece and check player input.
 func movement_checks(delta):
 	if(Input.is_action_pressed("ui_down")):
+		check_if_piece_will_collide(delta);
 		piece_down_lag -= 1;
 		
 		if(piece_down_lag < 0):
@@ -97,12 +103,14 @@ func movement_checks(delta):
 			
 		if(Input.is_action_pressed("ui_left")):
 			if(piece_sides_lag == 0):
+				check_if_piece_will_collide_at_left(delta);
 				position.x = position.x - cell_size;
 				piece_sides_lag = piece_sides_initial_lag;
 				piece_sides_initial_lag /= 2;
 				
 		if(Input.is_action_pressed("ui_right")):
 			if(piece_sides_lag == 0):
+				check_if_piece_will_collide_at_right(delta);
 				position.x = position.x + cell_size;
 				piece_sides_lag = piece_sides_initial_lag;
 				piece_sides_initial_lag /= 2;
@@ -128,12 +136,29 @@ func collision_checks(delta):
 		position.y = field_node.bottom_wall_position_y - cell_size * piece_pool_node.piece_node.height_in_blocks;
 		place_piece();
 
-func check_if_piece_will_collide(speed, delta):
-	var collision_info = piece_node.test_move(get_transform(), speed * delta);
+func check_if_piece_will_collide(delta):
+	var collision_info = piece_node.test_move(get_transform(), Vector2(0, piece_collision_detection_speed) * delta);
 	
 	if(collision_info):
-		print(collision_info);
 		place_piece();
+
+func check_if_piece_will_collide_at_left(delta):
+	var collides_with_left = piece_node.test_move(get_transform(), Vector2(-1 * piece_collision_detection_speed, 0) * delta);
+	
+	if(collides_with_left):
+		print("LEFT");
+		position.x = position.x + cell_size;
+	
+	return collides_with_left;
+
+func check_if_piece_will_collide_at_right(delta):
+	var collides_with_right = piece_node.test_move(get_transform(), Vector2(piece_collision_detection_speed, 0) * delta);
+	
+	if(collides_with_right):
+		print("RIGHT");
+		position.x = position.x - cell_size;
+	
+	return collides_with_right;
 
 # Add the piece in field_node as child.
 func place_piece():

@@ -15,3 +15,8 @@ func _ready():
 #	# Called every frame. Delta is time since last frame.
 #	# Update game logic here.
 #	pass
+
+func transform_into_blocks(piece_copy):
+	var children = piece_copy.get_children();
+	print(children);
+	pass
