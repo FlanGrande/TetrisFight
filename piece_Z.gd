@@ -16,7 +16,8 @@ func _ready():
 #	# Update game logic here.
 #	pass
 
-func transform_into_blocks(piece_copy):
-	var children = piece_copy.get_children();
-	print(children);
+func rotate():
+	var tmp = width_in_blocks;
+	width_in_blocks = height_in_blocks;
+	height_in_blocks = tmp;
 	pass

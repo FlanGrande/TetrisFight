@@ -18,9 +18,9 @@ var piece_down_initial_lag = PIECE_SIDES_MIN_LAG;
 var piece_down_lag = piece_down_initial_lag;
 var origin = Vector2(150, 0);
 var piece_has_dropped = true;
-var piece_node;
+var piece_instance;
 var piece_position;
-var piece_collision_detection_speed = 1000;
+var piece_collision_detection_speed = 300;
 
 # Field variables.
 var fall_update_rate_in_fps = 60;
@@ -31,7 +31,7 @@ func _ready():
 	randomize(true);
 	# Called every time the node is added to the scene.
 	# Initialization here
-	origin = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), -60);
+	origin = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), -30);
 	fall_update_rate_in_fps = field_node.fall_update_rate_in_fps;
 	cell_size = field_node.cell_size;
 	reinitialize();
@@ -60,6 +60,7 @@ func _physics_process(delta):
 func reinitialize():
 	generate_piece();
 	position = origin;
+	rotation_degrees = 0;
 	piece_has_dropped = false;
 	current_update_time = fall_update_rate_in_fps;
 	piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
@@ -67,19 +68,19 @@ func reinitialize():
 
 # Generate a piece for the player.
 func generate_piece():
-	piece_node = piece_pool_node.generate_random_piece();
-	add_child(piece_node);
+	piece_instance = piece_pool_node.generate_random_piece();
+	add_child(piece_instance);
 
 # Update fall of the piece and check player input.
 func movement_checks(delta):
 	if(Input.is_action_pressed("ui_down")):
-		check_if_piece_will_collide(delta);
 		piece_down_lag -= 1;
 		
 		if(piece_down_lag < 0):
 			piece_down_lag = 0;
 		
 		if(piece_down_lag == 0):
+			check_if_piece_will_collide(delta);
 			position.y = position.y + cell_size;
 			piece_down_lag = piece_down_initial_lag;
 			piece_down_initial_lag /= 2;
@@ -118,51 +119,101 @@ func movement_checks(delta):
 		piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
 
 func rotation_checks(delta):
-	if(Input.is_action_just_pressed("rotate_clockwise")):
-		rotation_degrees += 90;
-	else:
-		if(Input.is_action_just_pressed("rotate_anticlockwise")):
-			rotation_degrees -= 90;
+	if(Input.is_action_just_pressed("rotate_clockwise") or Input.is_action_just_pressed("rotate_anticlockwise")):
+		var rotation = 90;
+		
+		var can_rotate = check_if_piece_can_rotate(delta);
+		
+		if(can_rotate):
+			if(Input.is_action_just_pressed("rotate_clockwise")):
+				rotate_piece(rotation, delta);
+			else:
+				if(Input.is_action_just_pressed("rotate_anticlockwise")):
+					rotate_piece(-1 * rotation, delta);
+		
+		#Prevent piece from being placed after the player rotated it.
+		var collide_bottom = check_if_piece_will_collide(delta, false);
+		
+		if(collide_bottom):
+			current_update_time = fall_update_rate_in_fps;
 
 # Check boundaries, placement of the piece.
 func collision_checks(delta):
-	if(position.x <= field_node.left_wall_position_x):
-		position.x = field_node.left_wall_position_x;
+	var left_wall_x = field_node.left_wall_position_x
+	var right_wall_x = field_node.right_wall_position_x;
+	var bottom_wall_y = field_node.bottom_wall_position_y;
+	
+	if(position.x <= left_wall_x):
+		position.x = left_wall_x;
 	else:
-		if(position.x > field_node.right_wall_position_x - cell_size * piece_pool_node.piece_node.width_in_blocks):
-			position.x = field_node.right_wall_position_x - cell_size * piece_pool_node.piece_node.width_in_blocks;
+		if(position.x > right_wall_x):
+			position.x = right_wall_x;
 	
-	if(position.y > field_node.bottom_wall_position_y - cell_size * piece_pool_node.piece_node.height_in_blocks):
-		position.y = field_node.bottom_wall_position_y - cell_size * piece_pool_node.piece_node.height_in_blocks;
-		place_piece();
+	if(position.y > bottom_wall_y):
+		position.y = bottom_wall_y;
+		#place_piece();
 
-func check_if_piece_will_collide(delta):
-	var collision_info = piece_node.test_move(get_transform(), Vector2(0, piece_collision_detection_speed) * delta);
+func check_if_piece_will_collide(delta, place_it = true):
+	var collision_info = piece_instance.test_move(get_transform(), Vector2(0, piece_collision_detection_speed) * delta);
 	
-	if(collision_info):
+	if(collision_info and place_it):
 		place_piece();
+	
+	return collision_info;
 
-func check_if_piece_will_collide_at_left(delta):
-	var collides_with_left = piece_node.test_move(get_transform(), Vector2(-1 * piece_collision_detection_speed, 0) * delta);
+func check_if_piece_will_collide_at_left(delta, move_it = true):
+	var collides_with_left = piece_instance.test_move(get_transform(), Vector2(-1 * piece_collision_detection_speed, 0) * delta);
 	
 	if(collides_with_left):
-		print("LEFT");
-		position.x = position.x + cell_size;
+		#print("LEFT");
+		if(move_it):
+			position.x = position.x + cell_size;
 	
 	return collides_with_left;
 
-func check_if_piece_will_collide_at_right(delta):
-	var collides_with_right = piece_node.test_move(get_transform(), Vector2(piece_collision_detection_speed, 0) * delta);
+func check_if_piece_will_collide_at_right(delta, move_it = true):
+	var collides_with_right = piece_instance.test_move(get_transform(), Vector2(piece_collision_detection_speed, 0) * delta);
 	
 	if(collides_with_right):
-		print("RIGHT");
-		position.x = position.x - cell_size;
+		#print("RIGHT");
+		if(move_it):
+			position.x = position.x - cell_size;
 	
 	return collides_with_right;
 
+func check_if_piece_can_rotate(delta):
+	var collide_left = check_if_piece_will_collide_at_left(delta, false); #Check but don't move the piece;
+	var collide_right = check_if_piece_will_collide_at_right(delta, false);
+	var can_rotate = not (collide_left and collide_right);
+	
+	return can_rotate;
+
+func rotate_piece(angle_of_rotation, delta):
+	piece_instance.rotation_degrees += angle_of_rotation;
+	piece_pool_node.piece_instance.rotate();
+
+	var collided_left = false;
+	var collided_right = false;
+	
+	while(check_if_piece_will_collide_at_left(delta, false) == true):
+		collided_left = check_if_piece_will_collide_at_left(delta);
+		
+	while(check_if_piece_will_collide_at_right(delta, false) == true):
+		collided_right = check_if_piece_will_collide_at_right(delta);
+	
+	if(collided_left):
+		position.x -= cell_size;
+	
+	if(collided_right):
+		position.x += cell_size;
+
+#func check_if_piece_can_rotate_anticlockwise_then_rotate_it(angle_of_rotation, delta):
+	
+
 # Add the piece in field_node as child.
 func place_piece():
-	piece_node.position = position;
-	field_node.add_piece(piece_node.duplicate(true), rotation_degrees);
-	remove_child(piece_node);
+	piece_instance.position = position;
+	piece_instance.rotation_degrees = rotation_degrees;
+	field_node.add_piece(piece_instance);
+	remove_child(piece_instance);
 	reinitialize();

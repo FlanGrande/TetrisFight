@@ -21,21 +21,21 @@ height_in_blocks = 4
 
 [node name="piece" parent="." index="0" instance=ExtResource( 2 )]
 
+position = Vector2( 0, -60 )
+
 [node name="piece2" parent="." index="1" instance=ExtResource( 2 )]
 
-position = Vector2( 0, 30 )
+position = Vector2( 0, -30 )
 
 [node name="piece3" parent="." index="2" instance=ExtResource( 2 )]
 
-position = Vector2( 0, 60 )
-
 [node name="piece4" parent="." index="3" instance=ExtResource( 2 )]
 
-position = Vector2( 0, 90 )
+position = Vector2( 0, 30 )
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." index="4"]
 
-position = Vector2( 15, 60 )
+position = Vector2( 15, 0 )
 shape = SubResource( 1 )
 
 

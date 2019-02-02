@@ -15,7 +15,7 @@ extents = Vector2( 30, 450 )
 custom_solver_bias = 0.0
 extents = Vector2( 210, 30 )
 
-[node name="root" type="Node2D"]
+[node name="root" type="Node2D" index="0"]
 
 [node name="field" parent="." index="0" instance=ExtResource( 1 )]
 
@@ -23,9 +23,9 @@ position = Vector2( 0, 0 )
 script = ExtResource( 2 )
 _sections_unfolded = [ "Material" ]
 cell_size = 30
+fall_update_rate_in_fps = 60
 height_in_cells = 30
 width_in_cells = 10
-fall_update_rate_in_fps = 60
 
 [node name="piece_pool" parent="." index="1" instance=ExtResource( 3 )]
 

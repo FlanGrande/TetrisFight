@@ -5,8 +5,8 @@ extends Node2D
 # var b = "textvar"
 onready var number_of_possible_pieces = get_child_count();
 var piece_to_use = 0;
-var piece_node;
-var piece_copy;
+var piece_node_name;
+var piece_instance;
 
 
 func _ready():
@@ -24,7 +24,7 @@ func generate_random_piece():
 	piece_to_use = randi() % number_of_possible_pieces;
 	
 	#use that number to obtain a random piece node. Then get an instance of the node to use it elsewhere.
-	piece_node = get_children()[piece_to_use];
-	piece_copy = piece_node.duplicate(true);	
+	piece_node_name = get_children()[piece_to_use].name;
+	piece_instance = load("res://" + piece_node_name + ".tscn").instance();
 	
-	return piece_copy;
+	return piece_instance;

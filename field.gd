@@ -2,8 +2,6 @@ extends Node2D
 
 # Screen and game field variables
 export var cell_size = 30;
-export var height_in_cells = 30;
-export var width_in_cells = 10;
 export var fall_update_rate_in_fps = 60;
 onready var root_node = get_parent();
 onready var field_node = root_node.get_node("field");
@@ -17,8 +15,9 @@ var right_wall_position_x = 300;
 var bottom_wall_position_y = 900;
 
 # Pieces_matrix variables
+export var height_in_cells = 30;
+export var width_in_cells = 10;
 var pieces_matrix;
-var bottom_line;
 
 func _ready():
 	# Called every time the node is added to the scene.
@@ -46,31 +45,48 @@ func initialize_matrix():
 	
 	for i in field_node.height_in_cells:
 		var tmp_line = Array();
-		bottom_line = Array();
 		
 		for j in field_node.width_in_cells:
 			tmp_line.push_back(0);
-			bottom_line.push_back(1);
 			
 		pieces_matrix.insert(i, tmp_line);
-	
-	pieces_matrix.push_back(bottom_line);
 
 # Place the piece into the board.
-func add_piece(piece, rotation_in_degrees):
-	#print(rotation_in_degrees);
-	#piece.rotation_degrees = rotation_in_degrees; #adjust piece coordinates to match field coordinates.
+func add_piece(piece):
 	transform_into_blocks(piece);
-	#add_child(piece);
+	#print_matrix();
 
 func transform_into_blocks(piece):
 	var children = piece.get_children();
 	#print(children[0].get_path());
 	for i in children.size():
-		print(children[i].get_name());
+		#print(piece.position);
 		if(children[i].get_name().match("*piece*")):
-			var tmp_block = children[i].duplicate(true);
-			#TO DO: put the blocks in place, then enable their collision box
-			tmp_block.position.x = tmp_block.position.x - position.x; #adjust piece coordinates to match field coordinates.
-			tmp_block.position.y = tmp_block.position.y - position.y; #adjust piece coordinates to match field coordinates.
-			add_child(tmp_block);
+			var tmp_block = children[i];
+			var block_instance = load("res://piece.tscn").instance();
+			
+			block_instance.position.x = piece.position.x + tmp_block.position.x - position.x; #adjust piece coordinates to match field coordinates.
+			block_instance.position.y = piece.position.y + tmp_block.position.y - position.y; #adjust piece coordinates to match field coordinates.
+			block_instance.get_node("StaticBody2D/CollisionShape2D").disabled = false;
+			
+			var position_x = (block_instance.position.x - (int(block_instance.position.x) % cell_size)) / cell_size;
+			var position_y = (block_instance.position.y - (int(block_instance.position.y) % cell_size)) / cell_size;
+			
+			#block_instance.position = tmp_block.position;
+			#block_instance.rotation = tmp_block.rotation;
+			
+			if(position_x < 0):
+				position_x = 0;
+			
+			if(position_y < 0):
+				position_y = 0;
+			
+			add_to_matrix(position_x, position_y);
+			add_child(block_instance);
+
+func add_to_matrix(x, y):
+	pieces_matrix[y][x] = 1; #inverted x and y.
+
+func print_matrix():
+	for i in field_node.height_in_cells:
+		print(pieces_matrix[i]);
