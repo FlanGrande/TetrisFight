@@ -19,7 +19,8 @@ var piece_down_lag = piece_down_initial_lag;
 var origin = Vector2(150, 0);
 var piece_has_dropped = true;
 var piece_instance;
-var piece_position;
+var piece_position = Vector2(0, 0);
+var piece_rotation = 0;
 var piece_collision_detection_speed = 300;
 
 # Field variables.
@@ -31,7 +32,7 @@ func _ready():
 	randomize(true);
 	# Called every time the node is added to the scene.
 	# Initialization here
-	origin = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), -30);
+	origin = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), 0);
 	fall_update_rate_in_fps = field_node.fall_update_rate_in_fps;
 	cell_size = field_node.cell_size;
 	reinitialize();
@@ -120,16 +121,16 @@ func movement_checks(delta):
 
 func rotation_checks(delta):
 	if(Input.is_action_just_pressed("rotate_clockwise") or Input.is_action_just_pressed("rotate_anticlockwise")):
-		var rotation = 90;
+		var rotation_in_degrees = 90;
 		
 		var can_rotate = check_if_piece_can_rotate(delta);
 		
 		if(can_rotate):
 			if(Input.is_action_just_pressed("rotate_clockwise")):
-				rotate_piece(rotation, delta);
+				rotate_piece(rotation_in_degrees, delta);
 			else:
 				if(Input.is_action_just_pressed("rotate_anticlockwise")):
-					rotate_piece(-1 * rotation, delta);
+					rotate_piece(-1 * rotation_in_degrees, delta);
 		
 		#Prevent piece from being placed after the player rotated it.
 		var collide_bottom = check_if_piece_will_collide(delta, false);
@@ -185,12 +186,23 @@ func check_if_piece_can_rotate(delta):
 	var collide_left = check_if_piece_will_collide_at_left(delta, false); #Check but don't move the piece;
 	var collide_right = check_if_piece_will_collide_at_right(delta, false);
 	var can_rotate = not (collide_left and collide_right);
+	var is_the_piece_thin_enough_to_rotate = piece_instance.width_in_blocks >= piece_instance.height_in_blocks;
+	
+	if(not can_rotate and is_the_piece_thin_enough_to_rotate):
+		can_rotate = true;
 	
 	return can_rotate;
 
-func rotate_piece(angle_of_rotation, delta):
-	piece_instance.rotation_degrees += angle_of_rotation;
-	piece_pool_node.piece_instance.rotate();
+func rotate_piece(rotation_in_degrees, delta):	
+	piece_rotation += rotation_in_degrees;
+	
+	if(piece_rotation >= 360):
+		piece_rotation -= 360;
+	else:
+		if(piece_rotation < 0):
+			piece_rotation += 360;
+	
+	piece_instance.rotate(piece_rotation);
 
 	var collided_left = false;
 	var collided_right = false;
@@ -213,7 +225,7 @@ func rotate_piece(angle_of_rotation, delta):
 # Add the piece in field_node as child.
 func place_piece():
 	piece_instance.position = position;
-	piece_instance.rotation_degrees = rotation_degrees;
+	#piece_instance.rotation_degrees = rotation_degrees;
 	field_node.add_piece(piece_instance);
 	remove_child(piece_instance);
 	reinitialize();

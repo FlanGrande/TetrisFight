@@ -1,9 +1,8 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://field.tscn" type="PackedScene" id=1]
-[ext_resource path="res://field.gd" type="Script" id=2]
-[ext_resource path="res://piece_pool.tscn" type="PackedScene" id=3]
-[ext_resource path="res://falling_piece.gd" type="Script" id=4]
+[ext_resource path="res://piece_pool.tscn" type="PackedScene" id=2]
+[ext_resource path="res://falling_piece.gd" type="Script" id=3]
 
 [sub_resource type="RectangleShape2D" id=1]
 
@@ -15,26 +14,21 @@ extents = Vector2( 30, 450 )
 custom_solver_bias = 0.0
 extents = Vector2( 210, 30 )
 
-[node name="root" type="Node2D" index="0"]
+[node name="root" type="Node2D"]
 
 [node name="field" parent="." index="0" instance=ExtResource( 1 )]
 
 position = Vector2( 0, 0 )
-script = ExtResource( 2 )
 _sections_unfolded = [ "Material" ]
-cell_size = 30
-fall_update_rate_in_fps = 60
-height_in_cells = 30
-width_in_cells = 10
 
-[node name="piece_pool" parent="." index="1" instance=ExtResource( 3 )]
+[node name="piece_pool" parent="." index="1" instance=ExtResource( 2 )]
 
 visible = false
 
 [node name="falling_piece" type="Node2D" parent="." index="2"]
 
 position = Vector2( 150, 0 )
-script = ExtResource( 4 )
+script = ExtResource( 3 )
 _sections_unfolded = [ "Transform" ]
 
 [node name="collision_borders" type="Node2D" parent="." index="3"]

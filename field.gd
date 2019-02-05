@@ -53,14 +53,14 @@ func initialize_matrix():
 
 # Place the piece into the board.
 func add_piece(piece):
+	print(piece.rotation_degrees);
 	transform_into_blocks(piece);
 	#print_matrix();
 
 func transform_into_blocks(piece):
 	var children = piece.get_children();
-	#print(children[0].get_path());
+	
 	for i in children.size():
-		#print(piece.position);
 		if(children[i].get_name().match("*piece*")):
 			var tmp_block = children[i];
 			var block_instance = load("res://piece.tscn").instance();

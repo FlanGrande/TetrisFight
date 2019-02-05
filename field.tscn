@@ -1,14 +1,20 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
-[ext_resource path="res://graphics/field/field.png" type="Texture" id=1]
+[ext_resource path="res://field.gd" type="Script" id=1]
+[ext_resource path="res://graphics/field/field.png" type="Texture" id=2]
 
 [node name="field" type="Node2D"]
 
 position = Vector2( 150, 400 )
+script = ExtResource( 1 )
+cell_size = 30
+fall_update_rate_in_fps = 60
+height_in_cells = 30
+width_in_cells = 10
 
 [node name="Sprite" type="Sprite" parent="." index="0"]
 
-texture = ExtResource( 1 )
+texture = ExtResource( 2 )
 centered = false
 _sections_unfolded = [ "Offset" ]
 
