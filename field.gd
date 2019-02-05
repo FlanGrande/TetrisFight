@@ -24,13 +24,13 @@ func _ready():
 	# Initialization here
 	initialize_walls_and_origin();
 	initialize_matrix();
-	
 	pass
 
-#func _process(delta):
-#	# Called every frame. Delta is time since last frame.
-#	# Update game logic here.
-#	pass
+func _process(delta):
+	# Called every frame. Delta is time since last frame.
+	# Update game logic here.
+	clear_completed_lines();
+	pass
 
 # Define boundaries of the playing field.
 func initialize_walls_and_origin():
@@ -43,17 +43,16 @@ func initialize_walls_and_origin():
 func initialize_matrix():
 	pieces_matrix = Array();
 	
-	for i in field_node.height_in_cells:
+	for i in height_in_cells:
 		var tmp_line = Array();
 		
-		for j in field_node.width_in_cells:
+		for j in width_in_cells:
 			tmp_line.push_back(0);
 			
 		pieces_matrix.insert(i, tmp_line);
 
 # Place the piece into the board.
 func add_piece(piece):
-	print(piece.rotation_degrees);
 	transform_into_blocks(piece);
 	#print_matrix();
 
@@ -81,12 +80,46 @@ func transform_into_blocks(piece):
 			if(position_y < 0):
 				position_y = 0;
 			
-			add_to_matrix(position_x, position_y);
 			add_child(block_instance);
+			add_to_matrix(position_x, position_y, block_instance);
 
-func add_to_matrix(x, y):
-	pieces_matrix[y][x] = 1; #inverted x and y.
+func add_to_matrix(x, y, block_instance):
+	pieces_matrix[y][x] = field_node.get_path_to(block_instance); #inverted x and y.
 
 func print_matrix():
-	for i in field_node.height_in_cells:
+	for i in height_in_cells:
 		print(pieces_matrix[i]);
+
+func slide_lines_from_row(row_number):
+	for i in range (row_number, -1, -1):
+		for j in width_in_cells:
+			if(typeof(pieces_matrix[i][j]) == TYPE_NODE_PATH):
+				var tmp_copy = pieces_matrix[i][j];
+				get_node(pieces_matrix[i][j]).position.y += cell_size;
+				pieces_matrix[i + 1][j] = tmp_copy;
+				pieces_matrix[i][j] = 0;
+
+func clear_line(row_number):
+	#First we empty the line.
+	for j in width_in_cells:
+		get_node(pieces_matrix[row_number][j]).queue_free();
+		pieces_matrix[row_number][j] = 0;
+	
+	#Then we move the blocks above down.
+	slide_lines_from_row(row_number);
+
+func clear_completed_lines():
+	for i in height_in_cells:
+		var line_is_full = true;
+		var row_to_clear = 0;
+		
+		for j in width_in_cells:
+			var pieces_matrix_cell = pieces_matrix[i][j];
+			
+			if(typeof(pieces_matrix_cell) != TYPE_NODE_PATH):
+				line_is_full = false;
+			else:
+				row_to_clear = i;
+		
+		if(line_is_full):
+			clear_line(row_to_clear);

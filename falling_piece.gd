@@ -23,7 +23,7 @@ var piece_position = Vector2(0, 0);
 var piece_rotation = 0;
 var piece_collision_detection_speed = 300;
 
-# Field variables.
+# Field variables, this values get overrided with the variable defined in the field script.
 var fall_update_rate_in_fps = 60;
 var cell_size = 30;
 var current_update_time = fall_update_rate_in_fps;
@@ -62,6 +62,8 @@ func reinitialize():
 	generate_piece();
 	position = origin;
 	rotation_degrees = 0;
+	piece_instance.rotate(0);
+	piece_rotation = 0;
 	piece_has_dropped = false;
 	current_update_time = fall_update_rate_in_fps;
 	piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
@@ -73,7 +75,7 @@ func generate_piece():
 	add_child(piece_instance);
 
 # Update fall of the piece and check player input.
-func movement_checks(delta):
+func movement_checks(delta):	
 	if(Input.is_action_pressed("ui_down")):
 		piece_down_lag -= 1;
 		
@@ -87,12 +89,19 @@ func movement_checks(delta):
 			piece_down_initial_lag /= 2;
 	else:
 		piece_down_initial_lag = PIECE_DOWN_MAX_LAG;
+		piece_down_lag = piece_down_initial_lag;
 		
 		current_update_time -= 1;
 		
 		if(current_update_time == 0):
 			position.y = position.y + cell_size;
 			current_update_time = fall_update_rate_in_fps;
+	
+	if(Input.is_action_just_released("ui_down")):
+		print(position.y);
+		check_if_piece_will_collide(delta);
+		position.y = position.y + cell_size;
+		current_update_time = fall_update_rate_in_fps;
 		
 	if(Input.is_action_just_released("ui_left") or Input.is_action_just_released("ui_right")):
 		piece_sides_lag = 0;
@@ -118,6 +127,17 @@ func movement_checks(delta):
 				piece_sides_initial_lag /= 2;
 	else:
 		piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
+		piece_sides_lag = piece_sides_initial_lag;
+	
+	if(Input.is_action_just_released("ui_left")):
+		check_if_piece_will_collide_at_left(delta);
+		position.x = position.x - cell_size;
+		piece_sides_lag = 0;
+	
+	if(Input.is_action_just_released("ui_right")):
+		check_if_piece_will_collide_at_right(delta);
+		position.x = position.x + cell_size;
+		piece_sides_lag = 0;
 
 func rotation_checks(delta):
 	if(Input.is_action_just_pressed("rotate_clockwise") or Input.is_action_just_pressed("rotate_anticlockwise")):
