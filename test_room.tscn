@@ -7,7 +7,7 @@
 [sub_resource type="RectangleShape2D" id=1]
 
 custom_solver_bias = 0.0
-extents = Vector2( 30, 450 )
+extents = Vector2( 30, 570 )
 
 [sub_resource type="RectangleShape2D" id=2]
 
@@ -29,13 +29,13 @@ visible = false
 
 position = Vector2( 150, 0 )
 script = ExtResource( 3 )
-_sections_unfolded = [ "Transform" ]
+_sections_unfolded = [ "Material", "Transform", "Visibility" ]
 
 [node name="collision_borders" type="Node2D" parent="." index="3"]
 
 [node name="StaticBody2D" type="StaticBody2D" parent="collision_borders" index="0"]
 
-position = Vector2( -30, 420 )
+position = Vector2( -30, 300 )
 input_pickable = true
 collision_layer = 1
 collision_mask = 1
@@ -51,7 +51,7 @@ shape = SubResource( 1 )
 
 [node name="StaticBody2D2" type="StaticBody2D" parent="collision_borders" index="1"]
 
-position = Vector2( 330, 420 )
+position = Vector2( 330, 300 )
 input_pickable = true
 collision_layer = 1
 collision_mask = 1

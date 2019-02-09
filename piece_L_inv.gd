@@ -26,3 +26,6 @@ func rotate(rotation_degrees):
 	animation_player_node.play("rotate" + str(rotation_degrees));
 	
 	pass
+
+func change_colour(colour):
+	modulate = colour;

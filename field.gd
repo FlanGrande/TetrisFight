@@ -52,11 +52,11 @@ func initialize_matrix():
 		pieces_matrix.insert(i, tmp_line);
 
 # Place the piece into the board.
-func add_piece(piece):
-	transform_into_blocks(piece);
+func add_piece(piece, colour):
+	transform_into_blocks(piece, colour);
 	#print_matrix();
 
-func transform_into_blocks(piece):
+func transform_into_blocks(piece, colour):
 	var children = piece.get_children();
 	
 	for i in children.size():
@@ -80,6 +80,7 @@ func transform_into_blocks(piece):
 			if(position_y < 0):
 				position_y = 0;
 			
+			block_instance.change_colour(colour);
 			add_child(block_instance);
 			add_to_matrix(position_x, position_y, block_instance);
 

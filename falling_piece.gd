@@ -8,21 +8,23 @@ onready var field_node = root_node.get_node("field");
 onready var piece_pool_node = root_node.get_node("piece_pool");
 
 # Piece variables.
-const PIECE_SIDES_MAX_LAG = 12;
-const PIECE_SIDES_MIN_LAG = 4;
-const PIECE_DOWN_MAX_LAG = 12;
-const PIECE_DOWN_MIN_LAG = 4;
+const PIECE_SIDES_MAX_LAG = 8;
+const PIECE_SIDES_MIN_LAG = 2;
+const PIECE_DOWN_MAX_LAG = 2;
+const PIECE_DOWN_MIN_LAG = 0;
 var piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
 var piece_sides_lag = piece_sides_initial_lag;
 var piece_down_initial_lag = PIECE_SIDES_MIN_LAG;
 var piece_down_lag = piece_down_initial_lag;
-var origin = Vector2(150, 0);
+var spawn = Vector2(150, 0);
 var piece_has_dropped = true;
 var piece_instance;
 var piece_position = Vector2(0, 0);
 var piece_rotation = 0;
 var piece_was_rotated = false;
 var piece_collision_detection_speed = 300;
+var piece_colour = "#ffffff";
+var colours = ["#fff500", "#ffffff", "#00f3ff", "#1cffff", "#ff5600"];
 
 # Field variables, this values get overrided with the variable defined in the field script.
 var fall_update_rate_in_fps = 60;
@@ -34,10 +36,10 @@ func _ready():
 	randomize(true);
 	# Called every time the node is added to the scene.
 	# Initialization here
-	origin = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), 0);
+	spawn = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), 0);
 	fall_update_rate_in_fps = field_node.fall_update_rate_in_fps;
 	cell_size = field_node.cell_size;
-	reinitialize();
+	initialize();
 	pass
 
 func _process(delta):
@@ -48,7 +50,7 @@ func _process(delta):
 	
 	if(piece_has_dropped):
 		#Code for when a piece drops. Put it in spawn place and reinitialize position.
-		reinitialize();
+		initialize();
 	
 	movement_checks();
 	rotation_checks();
@@ -62,20 +64,24 @@ func _physics_process():
 			place_piece();
 
 # Puts piece at the top.
-func reinitialize():
+func initialize():
 	generate_piece();
-	position = origin;
+	
+	position = spawn;
 	rotation_degrees = 0;
 	piece_instance.rotate(0);
 	piece_rotation = 0;
 	piece_has_dropped = false;
+	
 	current_update_time = fall_update_rate_in_fps;
 	piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
 	piece_down_initial_lag = PIECE_DOWN_MAX_LAG;
 
 # Generate a piece for the player.
 func generate_piece():
+	piece_colour = Color(colours[randi() % colours.size()]);
 	piece_instance = piece_pool_node.generate_random_piece();
+	piece_instance.change_colour(piece_colour);
 	add_child(piece_instance);
 
 # Update fall of the piece and check player input.
@@ -124,10 +130,6 @@ func rotate_piece(rotation_in_degrees):
 	
 	piece_instance.rotate(piece_rotation);
 	piece_was_rotated = true;
-	
-	#if(piece_was_rotated):
-	print(piece_rotation);
-	check_left_after_rotation(piece_rotation);
 
 # Check boundaries, placement of the piece.
 func collision_checks():
@@ -144,15 +146,13 @@ func collision_checks():
 	if(position.y > bottom_wall_y):
 		position.y = bottom_wall_y;
 	
-	#TO DO improve collisions.
-	#if(piece_was_rotated):
-	#	check_left_after_rotation();
-	#	do_collision_right_behaviour();
+	check_left_after_rotation(piece_rotation);
+	check_right_after_rotation(piece_rotation);
 
 func up_pressed_checks():
 	if(Input.is_action_just_pressed("ui_up")):
 		while(not get_collisions()["bottom"]):
-			move_down();
+			move("down");
 		
 		current_update_time = 0;
 		place_piece();
@@ -167,23 +167,21 @@ func down_pressed_checks():
 		
 		if(piece_down_lag == 0):
 			do_collision_bottom_behaviour();
-			move_down();
-			piece_down_lag = piece_down_initial_lag;
-			piece_down_initial_lag /= 2;
+			move("down");
+			piece_down_lag = PIECE_DOWN_MAX_LAG;
 	else:
-		piece_down_initial_lag = PIECE_DOWN_MAX_LAG;
-		piece_down_lag = piece_down_initial_lag;
+		piece_down_lag = PIECE_DOWN_MAX_LAG;
 		
 		current_update_time -= 1;
 		
 		if(current_update_time == 0):
 			do_collision_bottom_behaviour();
-			move_down();
+			move("down");
 			current_update_time = fall_update_rate_in_fps;
 	
 	if(Input.is_action_just_released("ui_down")):
 		do_collision_bottom_behaviour();
-		move_down();
+		move("down");
 		current_update_time = fall_update_rate_in_fps;
 
 func left_or_right_pressed_checks():
@@ -199,14 +197,14 @@ func left_or_right_pressed_checks():
 		if(Input.is_action_pressed("ui_left")):
 			if(piece_sides_lag == 0):
 				do_collision_left_behaviour();
-				move_left();
+				move("left");
 				piece_sides_lag = piece_sides_initial_lag;
 				piece_sides_initial_lag /= 2;
 				
 		if(Input.is_action_pressed("ui_right")):
 			if(piece_sides_lag == 0):
 				do_collision_right_behaviour();
-				move_right();
+				move("right");
 				piece_sides_lag = piece_sides_initial_lag;
 				piece_sides_initial_lag /= 2;
 	else:
@@ -215,22 +213,26 @@ func left_or_right_pressed_checks():
 	
 	if(Input.is_action_just_released("ui_left")):
 		do_collision_left_behaviour();
-		move_left();
+		move("left");
 		piece_sides_lag = 0;
 	
 	if(Input.is_action_just_released("ui_right")):
 		do_collision_right_behaviour();
-		move_right();
+		move("right");
 		piece_sides_lag = 0;
 
-func move_down():
-	position.y += cell_size;
-
-func move_left():
-	position.x -= cell_size;
-
-func move_right():
-	position.x += cell_size;
+func move(direction):
+	if(direction == "up"):
+		position.y -= cell_size;
+	
+	if(direction == "right"):
+		position.x += cell_size;
+	
+	if(direction == "down"):
+		position.y += cell_size;
+	
+	if(direction == "left"):
+		position.x -= cell_size;
 
 func get_collisions():
 	var collision_dict = {
@@ -253,23 +255,15 @@ func do_collision_bottom_behaviour():
 
 func do_collision_left_behaviour():
 	if(get_collisions()["left"]):
-		position.x += cell_size;
+		move("right");
 
 func do_collision_right_behaviour():
 	if(get_collisions()["right"]):
-		position.x -= cell_size;
+		move("left");
 
 func check_if_piece_will_collide(speed):
 	var collision_info = piece_instance.test_move(get_transform(), speed * deltaTime);	
 	return collision_info;
-
-func check_if_piece_collides_after_rotation(move_it = true):
-	var rotation_in_degrees = 90;
-	
-	var was_moved = check_left_after_rotation(rotation_in_degrees);
-	
-	if(not was_moved):
-		check_right_after_rotation(rotation_in_degrees);
 
 #TO DO: check rotation BEFORE rotating, rather than correcting afterwards.
 ###
@@ -277,9 +271,9 @@ func test_rotation(rotation_in_degrees):
 	pass
 
 func check_left_after_rotation(rotation_in_degrees):
-	move_right();
+	move("right");
 	var collisions_dict_moved_to_right_cell = get_collisions();
-	move_left();
+	move("left");
 	
 	var collisions_dict_now = get_collisions();
 	
@@ -287,24 +281,24 @@ func check_left_after_rotation(rotation_in_degrees):
 		if(collisions_dict_moved_to_right_cell["left"] and not collisions_dict_moved_to_right_cell["right"]):
 			if(Input.is_action_just_pressed("rotate_clockwise")):
 				rotate_piece(-1 * rotation_in_degrees);
-				move_right();
+				move("right");
 				rotate_piece(rotation_in_degrees);
 			else:
 				if(Input.is_action_just_pressed("rotate_anticlockwise")):
 					rotate_piece(rotation_in_degrees);
-					move_right();
+					move("right");
 					rotate_piece(-1 * rotation_in_degrees);
 			
-			move_right();
+			move("right");
 			
 			#Fix for Piece_I
-			if(piece_instance.width_in_blocks > 3 and piece_rotation == 270):
-				move_right();
+			if(piece_instance.width_in_blocks > 3 and piece_rotation == 270 || piece_rotation == 90):
+				move("right");
 
 func check_right_after_rotation(rotation_in_degrees):
-	move_left();
+	move("left");
 	var collisions_dict_moved_to_left_cell = get_collisions();
-	move_right();
+	move("right");
 	
 	var collisions_dict_now = get_collisions();
 	
@@ -312,24 +306,23 @@ func check_right_after_rotation(rotation_in_degrees):
 		if(collisions_dict_moved_to_left_cell["right"] and not collisions_dict_moved_to_left_cell["left"]):
 			if(Input.is_action_just_pressed("rotate_clockwise")):
 				rotate_piece(-1 * rotation_in_degrees);
-				position.x -= cell_size;
+				move("left");
 				rotate_piece(rotation_in_degrees);
 			else:
 				if(Input.is_action_just_pressed("rotate_anticlockwise")):
 					rotate_piece(rotation_in_degrees);
-					position.x -= cell_size;
+					move("left");
 					rotate_piece(-1 * rotation_in_degrees);
 			
-			move_left();
+			move("left");
 			
 			#Fix for Piece_I
-			if(piece_instance.width_in_blocks > 3 and piece_rotation == 90):
-				move_left();
+			if(piece_instance.width_in_blocks > 3 and piece_rotation == 270 || piece_rotation == 90):
+				move("left");
 
 # Add the piece in field_node as child.
 func place_piece():
 	piece_instance.position = position;
-	#piece_instance.rotation_degrees = rotation_degrees;
-	field_node.add_piece(piece_instance);
+	field_node.add_piece(piece_instance, piece_colour);
 	remove_child(piece_instance);
-	reinitialize();
+	initialize();
