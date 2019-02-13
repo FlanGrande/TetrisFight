@@ -51,12 +51,35 @@ func initialize_matrix():
 			
 		pieces_matrix.insert(i, tmp_line);
 
+func add_to_matrix(x, y, block_instance):
+	if(x >= 0 and y >= 0 and x < width_in_cells and y < height_in_cells):
+		pieces_matrix[y][x] = field_node.get_path_to(block_instance); #inverted x and y.
+
+func get_matrix():
+	return pieces_matrix;
+
+func get_matrix_with_current_piece(piece):
+	return add_falling_piece_to_matrix(piece, pieces_matrix);
+
+func print_fixed_pieces_matrix():
+	print_matrix(pieces_matrix);
+
+func print_matrix(matrix):
+	var matrix_copy = duplicate_object(matrix);
+	
+	for i in height_in_cells:
+		for j in width_in_cells:
+			if(str(matrix_copy[i][j]) != str(0)):
+				matrix_copy[i][j] = 1;
+		print(matrix_copy[i]);
+
 # Place the piece into the board.
-func add_piece(piece, colour):
-	transform_into_blocks(piece, colour);
+func place_piece(piece, colour):
+	place_piece_on_field(piece, colour);
 	#print_matrix();
 
-func transform_into_blocks(piece, colour):
+func transform_into_blocks(piece):
+	var blocks_array = Array();
 	var children = piece.get_children();
 	
 	for i in children.size():
@@ -68,28 +91,53 @@ func transform_into_blocks(piece, colour):
 			block_instance.position.y = piece.position.y + tmp_block.position.y - position.y; #adjust piece coordinates to match field coordinates.
 			block_instance.get_node("StaticBody2D/CollisionShape2D").disabled = false;
 			
-			var position_x = (block_instance.position.x - (int(block_instance.position.x) % cell_size)) / cell_size;
-			var position_y = (block_instance.position.y - (int(block_instance.position.y) % cell_size)) / cell_size;
-			
-			#block_instance.position = tmp_block.position;
-			#block_instance.rotation = tmp_block.rotation;
-			
-			if(position_x < 0):
-				position_x = 0;
-			
-			if(position_y < 0):
-				position_y = 0;
-			
-			block_instance.change_colour(colour);
-			add_child(block_instance);
-			add_to_matrix(position_x, position_y, block_instance);
+			blocks_array.push_back(block_instance.duplicate());
+	
+	return blocks_array;
 
-func add_to_matrix(x, y, block_instance):
-	pieces_matrix[y][x] = field_node.get_path_to(block_instance); #inverted x and y.
+func place_piece_on_field(piece, colour):
+	var blocks_array = transform_into_blocks(piece);
+	
+	for i in blocks_array.size():
+		var current_block = blocks_array[i];
+		var block_position_in_matrix = get_block_position_in_matrix(current_block);
+		
+		var position_x_in_matrix = block_position_in_matrix.x;
+		var position_y_in_matrix = block_position_in_matrix.y;
+		
+		current_block.change_colour(colour);
+		add_child(current_block);
+		add_to_matrix(position_x_in_matrix, position_y_in_matrix, current_block);
 
-func print_matrix():
-	for i in height_in_cells:
-		print(pieces_matrix[i]);
+func add_falling_piece_to_matrix(piece, matrix):
+	var blocks_array = transform_into_blocks(piece);
+	var matrix_copy = duplicate_object(matrix);
+	
+	for i in blocks_array.size():
+		var current_block = blocks_array[i];
+		var block_position_in_matrix = get_block_position_in_matrix(current_block);
+		
+		var position_x_in_matrix = block_position_in_matrix.x;
+		var position_y_in_matrix = block_position_in_matrix.y;
+		
+		if(position_x_in_matrix >= 0 and position_y_in_matrix >= 0 and position_x_in_matrix < width_in_cells and position_y_in_matrix < height_in_cells):
+			matrix_copy[position_y_in_matrix][position_x_in_matrix] = 1;
+	
+	return matrix_copy;
+
+func get_block_position_in_matrix(block):
+	var position_x = block.position.x;
+	var position_y = block.position.y;
+	
+	# These are used to make sure the block will be in a position aligned to the grid.
+	var piece_offset_x = int(block.position.x) % cell_size;
+	var piece_offset_y = int(block.position.y) % cell_size;
+	
+	# Dividing by cell_size gives us the position in the matrix.
+	var position_x_in_matrix = (position_x - piece_offset_x) / cell_size;
+	var position_y_in_matrix = (position_y - piece_offset_y) / cell_size;
+	
+	return Vector2(position_x_in_matrix, position_y_in_matrix);
 
 func slide_lines_from_row(row_number):
 	for i in range (row_number, -1, -1):
@@ -124,3 +172,6 @@ func clear_completed_lines():
 		
 		if(line_is_full):
 			clear_line(row_to_clear);
+
+func duplicate_object(object):
+	return str2var(var2str(object));
