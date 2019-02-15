@@ -56,6 +56,7 @@ func _process(delta):
 	movement_checks();
 	rotation_checks();
 	collision_checks();
+	update_current_matrix_state();
 	
 	pass
 
@@ -67,7 +68,6 @@ func _physics_process():
 # Puts piece at the top.
 func initialize():
 	generate_piece();
-	
 	position = spawn;
 	rotation_degrees = 0;
 	piece_instance.rotate(0);
@@ -77,6 +77,8 @@ func initialize():
 	current_update_time = fall_update_rate_in_fps;
 	piece_sides_initial_lag = PIECE_SIDES_MAX_LAG;
 	piece_down_initial_lag = PIECE_DOWN_MAX_LAG;
+	
+	update_current_matrix_state();
 
 # Generate a piece for the player.
 func generate_piece():
@@ -131,6 +133,14 @@ func rotate_piece(rotation_in_degrees):
 	
 	piece_instance.rotate(piece_rotation);
 	piece_was_rotated = true;
+	
+	var collisions = get_collisions();
+	
+	#if(collisions["left"] or collisions["right"] or collisions["top"] or collisions["bottom"]):
+	update_current_matrix_state();
+	var free_spaces_array = search_free_spaces(piece_instance);
+	var closest_free_space_position = get_closest_free_space(free_spaces_array);
+	move_to_position_in_matrix(closest_free_space_position);
 
 # Check boundaries, placement of the piece.
 func collision_checks():
@@ -146,10 +156,6 @@ func collision_checks():
 	
 	if(position.y > bottom_wall_y):
 		position.y = bottom_wall_y;
-	
-	#check_left_after_rotation(piece_rotation);
-	#check_right_after_rotation(piece_rotation);
-	#check_down_after_rotation(piece_rotation);
 
 func up_pressed_checks():
 	if(Input.is_action_just_pressed("ui_up")):
@@ -165,7 +171,8 @@ func down_pressed_checks():
 		piece_down_lag -= 1;
 		
 		if(piece_down_lag == 0):
-			do_collision_bottom_behaviour();
+			if(get_collisions()["bottom"]):
+				place_piece();
 			move("down");
 			piece_down_lag = PIECE_DOWN_MAX_LAG;
 	else:
@@ -174,12 +181,14 @@ func down_pressed_checks():
 		current_update_time -= 1;
 		
 		if(current_update_time == 0):
-			do_collision_bottom_behaviour();
+			if(get_collisions()["bottom"]):
+				place_piece();
 			move("down");
 			current_update_time = fall_update_rate_in_fps;
 	
 	if(Input.is_action_just_released("ui_down")):
-		do_collision_bottom_behaviour();
+		if(get_collisions()["bottom"]):
+			place_piece();
 		move("down");
 		current_update_time = fall_update_rate_in_fps;
 
@@ -195,15 +204,15 @@ func left_or_right_pressed_checks():
 			
 		if(Input.is_action_pressed("ui_left")):
 			if(piece_sides_lag == 0):
-				do_collision_left_behaviour();
-				move("left");
+				if(not get_collisions()["left"]):
+					move("left");
 				piece_sides_lag = piece_sides_initial_lag;
 				piece_sides_initial_lag /= 2;
 				
 		if(Input.is_action_pressed("ui_right")):
 			if(piece_sides_lag == 0):
-				do_collision_right_behaviour();
-				move("right");
+				if(not get_collisions()["right"]):
+					move("right");
 				piece_sides_lag = piece_sides_initial_lag;
 				piece_sides_initial_lag /= 2;
 	else:
@@ -211,13 +220,13 @@ func left_or_right_pressed_checks():
 		piece_sides_lag = piece_sides_initial_lag;
 	
 	if(Input.is_action_just_released("ui_left")):
-		do_collision_left_behaviour();
-		move("left");
+		if(not get_collisions()["left"]):
+			move("left");
 		piece_sides_lag = 0;
 	
 	if(Input.is_action_just_released("ui_right")):
-		do_collision_right_behaviour();
-		move("right");
+		if(not get_collisions()["right"]):
+			move("right");
 		piece_sides_lag = 0;
 
 func move(direction):
@@ -234,11 +243,12 @@ func move(direction):
 		position.x -= cell_size;
 	
 	if(not Input.is_action_just_pressed("ui_up")):
-		piece_instance.position = position;
-		print("matrix:")
-		field_node.print_matrix(field_node.get_matrix_with_current_piece(piece_instance));
-		current_matrix_state = field_node.get_matrix_with_current_piece(piece_instance);
-		piece_instance.position = Vector2(0, 0);
+		update_current_matrix_state();
+
+func move_to_position_in_matrix(target_position):
+	#print(field_node.pos2cell(target_position));
+	
+	position = target_position;
 
 func get_collisions():
 	var collision_dict = {
@@ -255,96 +265,118 @@ func get_collisions():
 	
 	return collision_dict;
 
-func do_collision_bottom_behaviour():
-	if(get_collisions()["bottom"]):
-		place_piece();
-
-func do_collision_left_behaviour():
-	if(get_collisions()["left"]):
-		move("right");
-
-func do_collision_right_behaviour():
-	if(get_collisions()["right"]):
-		move("left");
-
 func check_if_piece_will_collide(speed):
 	var collision_info = piece_instance.test_move(get_transform(), speed * deltaTime);
 	return collision_info;
 
-func check_left_after_rotation(rotation_in_degrees):
-	move("right");
-	var collisions_dict_moved_to_right_cell = get_collisions();
-	move("left");
+# Returns an array of Vector2 containing all free positions.
+# A free position means a square of the size of the piece that's completely empty (including the empty blocks).
+func search_free_spaces(piece):
+	var free_spaces = Array();
+	var piece_height = piece.height_in_blocks;
+	var piece_width = piece.width_in_blocks;
 	
-	var collisions_dict_now = get_collisions();
+	var position_x = position.x - field_node.position.x;
+	var position_y = position.y - field_node.position.y;
 	
-	if(collisions_dict_now["left"]):
-		if(collisions_dict_moved_to_right_cell["left"] and not collisions_dict_moved_to_right_cell["right"]):
-			if(Input.is_action_just_pressed("rotate_clockwise")):
-				rotate_piece(-1 * rotation_in_degrees);
-				move("right");
-				rotate_piece(rotation_in_degrees);
-			else:
-				if(Input.is_action_just_pressed("rotate_anticlockwise")):
-					rotate_piece(rotation_in_degrees);
-					move("right");
-					rotate_piece(-1 * rotation_in_degrees);
+	# These are used to make sure the block will be in a position aligned to the grid.
+	var piece_offset_x = int(position_x) % cell_size;
+	var piece_offset_y = int(position_y) % cell_size;
+	
+	# Dividing by cell_size gives us the position in the matrix.
+	var position_x_in_matrix = (position_x - piece_offset_x) / cell_size;
+	var position_y_in_matrix = (position_y - piece_offset_y) / cell_size;
+	
+	var search_size = 4;
+	
+	var search_x_min = max(0, position_x_in_matrix - search_size);
+	var search_x_max = min(position_x_in_matrix + search_size, field_node.width_in_cells);
+	
+	var search_y_min = max(0, position_y_in_matrix - search_size);
+	var search_y_max = min(position_y_in_matrix + search_size, field_node.height_in_cells);
+	
+	for row in range(search_x_min, search_x_max):
+		for col in range(search_y_min, search_y_max):
+			var is_free_space = is_this_free_space(row, col, piece);
+			#print(is_free_space);
 			
-			move("right");
-			
-			#Fix for Piece_I
-			if(piece_instance.width_in_blocks > 3 and piece_rotation == 270 || piece_rotation == 90):
-				move("right");
+			if(is_free_space):
+				free_spaces.push_back(is_free_space);
+	
+	return free_spaces;
 
-func check_right_after_rotation(rotation_in_degrees):
-	move("left");
-	var collisions_dict_moved_to_left_cell = get_collisions();
-	move("right");
+func is_this_free_space(position_x, position_y, piece):
+	var free_space = false;
+	var is_free = true;
 	
-	var collisions_dict_now = get_collisions();
+	var search_x_min = max(0, position_x);
+	var search_x_max = min(position_x + piece.height_in_blocks - 1, field_node.width_in_cells - 1);
 	
-	if(collisions_dict_now["right"]):
-		if(collisions_dict_moved_to_left_cell["right"] and not collisions_dict_moved_to_left_cell["left"]):
-			if(Input.is_action_just_pressed("rotate_clockwise")):
-				rotate_piece(-1 * rotation_in_degrees);
-				move("left");
-				rotate_piece(rotation_in_degrees);
-			else:
-				if(Input.is_action_just_pressed("rotate_anticlockwise")):
-					rotate_piece(rotation_in_degrees);
-					move("left");
-					rotate_piece(-1 * rotation_in_degrees);
+	var search_y_min = max(0, position_y);
+	var search_y_max = min(position_y + piece.width_in_blocks - 1, field_node.height_in_cells - 1);
+	
+	# There's a bug if you press rotate right when the piece is going to be placed. (or not?)
+	for i in range(search_x_min, search_x_max):
+		for j in range(search_y_min, search_y_max):
+			if(current_matrix_state[j][i] != 0):
+				is_free = false;
+				break;
 			
-			move("left");
-			
-			#Fix for Piece_I
-			if(piece_instance.width_in_blocks > 3 and piece_rotation == 270 || piece_rotation == 90):
-				move("left");
+			if(is_free):
+				free_space = Vector2(position_x, position_y);
+	
+	return free_space;
 
-func check_down_after_rotation(rotation_in_degrees):
-	move("up");
-	var collisions_dict_moved_to_left_cell = get_collisions();
-	move("down");
+func get_closest_free_space(free_spaces_array):
+	var closest_free_space = Vector2();
 	
-	var collisions_dict_now = get_collisions();
-	
-	if(collisions_dict_now["bottom"]):
-		if(collisions_dict_moved_to_left_cell["bottom"] and not collisions_dict_moved_to_left_cell["top"]):
-			if(Input.is_action_just_pressed("rotate_clockwise")):
-				rotate_piece(-1 * rotation_in_degrees);
-				move("up");
-				rotate_piece(rotation_in_degrees);
+	if(free_spaces_array.size() > 0):
+		var piece_current_position = field_node.pos2cell(position);
+		closest_free_space = free_spaces_array[0];
+		
+		for i in free_spaces_array.size() - 1:
+			var piece_to_A_distance = piece_current_position.distance_to(closest_free_space);
+			var piece_to_B_distance = piece_current_position.distance_to(free_spaces_array[i + 1]);
+			
+			"""
+			print("piece_current_position");
+			print(piece_current_position);
+			
+			print("closest_free_space");
+			print(closest_free_space);
+			
+			print("A:");
+			print(piece_to_A_distance);
+			
+			print("B:");
+			print(piece_to_B_distance);
+			"""
+			
+			
+			
+			if(piece_to_A_distance <= piece_to_B_distance):
+				closest_free_space = closest_free_space;
 			else:
-				if(Input.is_action_just_pressed("rotate_anticlockwise")):
-					rotate_piece(rotation_in_degrees);
-					move("up");
-					rotate_piece(-1 * rotation_in_degrees);
-			
-			move("up");
-			
-			#Fix for Piece_I
-			if(piece_instance.height_in_blocks > 3 and piece_rotation == 0 || piece_rotation == 180):
-				move("up");
+				closest_free_space = free_spaces_array[i + 1];
+	
+	print("closest_free_space");
+	print(closest_free_space);
+	
+	closest_free_space = field_node.cell2pos(closest_free_space) + Vector2(field_node.left_wall_position_x, 0);
+	#print(closest_free_space + Vector2(field_node.left_wall_position_x, 0));
+	
+	return closest_free_space;
+
+func update_current_matrix_state():
+	piece_instance.position = position;
+	
+	#if(current_update_time == 0): 
+	#	print("matrix:");
+	#	field_node.print_matrix(field_node.get_clean_matrix());
+	
+	#current_matrix_state = field_node.get_matrix_with_falling_piece(piece_instance);
+	current_matrix_state = field_node.get_clean_matrix();
+	piece_instance.position = Vector2(0, 0);
 
 # Add the piece in field_node as child.
 func place_piece():

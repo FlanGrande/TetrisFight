@@ -17,7 +17,8 @@ var bottom_wall_position_y = 900;
 # Pieces_matrix variables
 export var height_in_cells = 30;
 export var width_in_cells = 10;
-var pieces_matrix;
+var pieces_matrix; #This matrix has 0 and block_instances path_to.
+var clean_matrix; #This matrix is like pieces_matrix, but has 1 instead of Block Nodes.
 
 func _ready():
 	# Called every time the node is added to the scene.
@@ -43,13 +44,13 @@ func initialize_walls_and_origin():
 func initialize_matrix():
 	pieces_matrix = Array();
 	
-	for i in height_in_cells:
+	for row in height_in_cells:
 		var tmp_line = Array();
 		
-		for j in width_in_cells:
+		for col in width_in_cells:
 			tmp_line.push_back(0);
 			
-		pieces_matrix.insert(i, tmp_line);
+		pieces_matrix.insert(row, tmp_line);
 
 func add_to_matrix(x, y, block_instance):
 	if(x >= 0 and y >= 0 and x < width_in_cells and y < height_in_cells):
@@ -58,7 +59,11 @@ func add_to_matrix(x, y, block_instance):
 func get_matrix():
 	return pieces_matrix;
 
-func get_matrix_with_current_piece(piece):
+func get_clean_matrix():
+	var clean_matrix = clean_matrix(pieces_matrix);
+	return clean_matrix;
+
+func get_matrix_with_falling_piece(piece):
 	return add_falling_piece_to_matrix(piece, pieces_matrix);
 
 func print_fixed_pieces_matrix():
@@ -67,11 +72,11 @@ func print_fixed_pieces_matrix():
 func print_matrix(matrix):
 	var matrix_copy = duplicate_object(matrix);
 	
-	for i in height_in_cells:
-		for j in width_in_cells:
-			if(str(matrix_copy[i][j]) != str(0)):
-				matrix_copy[i][j] = 1;
-		print(matrix_copy[i]);
+	for row in height_in_cells:
+		for col in width_in_cells:
+			if(str(matrix_copy[row][col]) != str(0)):
+				matrix_copy[row][col] = 1;
+		print(matrix_copy[row]);
 
 # Place the piece into the board.
 func place_piece(piece, colour):
@@ -82,9 +87,9 @@ func transform_into_blocks(piece):
 	var blocks_array = Array();
 	var children = piece.get_children();
 	
-	for i in children.size():
-		if(children[i].get_name().match("*piece*")):
-			var tmp_block = children[i];
+	for row in children.size():
+		if(children[row].get_name().match("*piece*")):
+			var tmp_block = children[row];
 			var block_instance = load("res://piece.tscn").instance();
 			
 			block_instance.position.x = piece.position.x + tmp_block.position.x - position.x; #adjust piece coordinates to match field coordinates.
@@ -94,36 +99,6 @@ func transform_into_blocks(piece):
 			blocks_array.push_back(block_instance.duplicate());
 	
 	return blocks_array;
-
-func place_piece_on_field(piece, colour):
-	var blocks_array = transform_into_blocks(piece);
-	
-	for i in blocks_array.size():
-		var current_block = blocks_array[i];
-		var block_position_in_matrix = get_block_position_in_matrix(current_block);
-		
-		var position_x_in_matrix = block_position_in_matrix.x;
-		var position_y_in_matrix = block_position_in_matrix.y;
-		
-		current_block.change_colour(colour);
-		add_child(current_block);
-		add_to_matrix(position_x_in_matrix, position_y_in_matrix, current_block);
-
-func add_falling_piece_to_matrix(piece, matrix):
-	var blocks_array = transform_into_blocks(piece);
-	var matrix_copy = duplicate_object(matrix);
-	
-	for i in blocks_array.size():
-		var current_block = blocks_array[i];
-		var block_position_in_matrix = get_block_position_in_matrix(current_block);
-		
-		var position_x_in_matrix = block_position_in_matrix.x;
-		var position_y_in_matrix = block_position_in_matrix.y;
-		
-		if(position_x_in_matrix >= 0 and position_y_in_matrix >= 0 and position_x_in_matrix < width_in_cells and position_y_in_matrix < height_in_cells):
-			matrix_copy[position_y_in_matrix][position_x_in_matrix] = 1;
-	
-	return matrix_copy;
 
 func get_block_position_in_matrix(block):
 	var position_x = block.position.x;
@@ -139,39 +114,97 @@ func get_block_position_in_matrix(block):
 	
 	return Vector2(position_x_in_matrix, position_y_in_matrix);
 
+func place_piece_on_field(piece, colour):
+	var blocks_array = transform_into_blocks(piece);
+	
+	for row in blocks_array.size():
+		var current_block = blocks_array[row];
+		var block_position_in_matrix = get_block_position_in_matrix(current_block);
+		
+		current_block.change_colour(colour);
+		add_child(current_block);
+		add_to_matrix(block_position_in_matrix.x, block_position_in_matrix.y, current_block);
+
+# Return matrix with the piece as well.
+func add_falling_piece_to_matrix(piece, matrix):
+	var blocks_array = transform_into_blocks(piece);
+	var matrix_copy = duplicate_object(matrix);
+	
+	for row in blocks_array.size():
+		var current_block = blocks_array[row];
+		var block_position_in_matrix = get_block_position_in_matrix(current_block);
+		
+		var position_x_in_matrix = block_position_in_matrix.x;
+		var position_y_in_matrix = block_position_in_matrix.y;
+		
+		if(position_x_in_matrix >= 0 and position_y_in_matrix >= 0 and position_x_in_matrix < width_in_cells and position_y_in_matrix < height_in_cells):
+			matrix_copy[position_y_in_matrix][position_x_in_matrix] = 1;
+	
+	return matrix_copy;
+
+func clean_matrix(matrix):
+	var matrix_copy = duplicate_object(matrix);
+	
+	for row in matrix_copy.size():
+		for col in matrix_copy[row].size():
+			if(typeof(matrix[row][col]) == TYPE_NODE_PATH):
+				matrix_copy[row][col] = 1;
+	
+	#print("matrix");
+	#print_matrix(matrix_copy);
+	
+	return matrix_copy;
+
 func slide_lines_from_row(row_number):
-	for i in range (row_number, -1, -1):
-		for j in width_in_cells:
-			if(typeof(pieces_matrix[i][j]) == TYPE_NODE_PATH):
-				var tmp_copy = pieces_matrix[i][j];
-				get_node(pieces_matrix[i][j]).position.y += cell_size;
-				pieces_matrix[i + 1][j] = tmp_copy;
-				pieces_matrix[i][j] = 0;
+	for row in range (row_number, -1, -1):
+		for col in width_in_cells:
+			if(typeof(pieces_matrix[row][col]) == TYPE_NODE_PATH):
+				var tmp_copy = pieces_matrix[row][col];
+				get_node(pieces_matrix[row][col]).position.y += cell_size;
+				pieces_matrix[row + 1][col] = tmp_copy;
+				pieces_matrix[row][col] = 0;
 
 func clear_line(row_number):
 	#First we empty the line.
-	for j in width_in_cells:
-		get_node(pieces_matrix[row_number][j]).queue_free();
-		pieces_matrix[row_number][j] = 0;
+	for col in width_in_cells:
+		get_node(pieces_matrix[row_number][col]).queue_free();
+		pieces_matrix[row_number][col] = 0;
 	
-	#Then we move the blocks above down.
+	#Then we move the blocks above the line down.
 	slide_lines_from_row(row_number);
 
 func clear_completed_lines():
-	for i in height_in_cells:
+	for row in height_in_cells:
 		var line_is_full = true;
 		var row_to_clear = 0;
 		
-		for j in width_in_cells:
-			var pieces_matrix_cell = pieces_matrix[i][j];
+		for col in width_in_cells:
+			var pieces_matrix_cell = pieces_matrix[row][col];
 			
 			if(typeof(pieces_matrix_cell) != TYPE_NODE_PATH):
 				line_is_full = false;
 			else:
-				row_to_clear = i;
+				row_to_clear = row;
 		
 		if(line_is_full):
 			clear_line(row_to_clear);
 
 func duplicate_object(object):
 	return str2var(var2str(object));
+
+func pos2cell(position):
+	# These are used to make sure the final variables will be in a position aligned to the grid.
+	var position_x = position.x - left_wall_position_x;
+	var position_y = position.y - 0;
+	
+	var piece_offset_x = int(position_x) % cell_size;
+	var piece_offset_y = int(position_y) % cell_size;
+	
+	# Dividing by cell_size gives us the position in the matrix.
+	var position_x_in_matrix = (position_x - piece_offset_x) / cell_size;
+	var position_y_in_matrix = (position_y - piece_offset_y) / cell_size;
+	
+	return Vector2(position_x_in_matrix, position_y_in_matrix);
+
+func cell2pos(position_in_matrix):
+	return Vector2(position_in_matrix.x * cell_size, position_in_matrix.y * cell_size);
