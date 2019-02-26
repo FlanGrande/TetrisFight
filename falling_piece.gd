@@ -1,4 +1,4 @@
-extends Node2D
+extends KinematicBody2D
 
 # class member variables go here, for example:
 # var a = 2
@@ -34,10 +34,11 @@ var deltaTime;
 var current_matrix_state = Array();
 
 func _ready():
+	set_physics_process(true);
 	randomize(true);
 	# Called every time the node is added to the scene.
 	# Initialization here
-	spawn = Vector2(field_node.position.x + (field_node.size.x / 2 - cell_size), 0);
+	spawn = Vector2(field_node.position.x + (field_node.size.x / 2), 0);
 	fall_update_rate_in_fps = field_node.fall_update_rate_in_fps;
 	cell_size = field_node.cell_size;
 	initialize();
@@ -46,24 +47,27 @@ func _ready():
 func _process(delta):
 #	# Called every frame. Delta is time since last frame.
 #	# Update game logic here.
+	
 	deltaTime = delta;
-	piece_was_rotated = false;
 	
 	if(piece_has_dropped):
-		#Code for when a piece drops. Put it in spawn place and reinitialize position.
+		#When a piece drops. Put it in spawn place and reinitialize position.
 		initialize();
 	
 	movement_checks();
 	rotation_checks();
-	collision_checks();
+	
 	update_current_matrix_state();
 	
 	pass
 
-func _physics_process():
-	if(current_update_time == 1):
-		if(get_collisions()["bottom"]):
-			place_piece();
+func _physics_process(delta):
+	#if(current_update_time == 1):
+	#	if(get_collisions()["bottom"]):
+	#		place_piece();
+	collision_checks();
+	
+	pass
 
 # Puts piece at the top.
 func initialize():
@@ -120,7 +124,9 @@ func check_if_piece_can_rotate():
 	if(not can_rotate and is_the_piece_thin_enough_to_rotate):
 		can_rotate = true;
 	
-	return can_rotate;
+	#TO DO fix this
+	#return can_rotate;
+	return true;
 
 func rotate_piece(rotation_in_degrees):
 	piece_rotation += rotation_in_degrees;
@@ -136,14 +142,19 @@ func rotate_piece(rotation_in_degrees):
 	
 	var collisions = get_collisions();
 	
-	#if(collisions["left"] or collisions["right"] or collisions["top"] or collisions["bottom"]):
 	update_current_matrix_state();
-	var free_spaces_array = search_free_spaces(piece_instance);
-	var closest_free_space_position = get_closest_free_space(free_spaces_array);
-	move_to_position_in_matrix(closest_free_space_position);
 
 # Check boundaries, placement of the piece.
 func collision_checks():
+	if(piece_was_rotated):
+		var collisions = get_collisions();
+		
+		print("position antes: " + str(field_node.pos2cell(position)));
+		#brute_force_reposition(free_spaces_array);
+		brute_force_reposition_alt();
+		print("position después: " + str(field_node.pos2cell(position)));
+		piece_was_rotated = false;
+	
 	var left_wall_x = field_node.left_wall_position_x;
 	var right_wall_x = field_node.right_wall_position_x;
 	var bottom_wall_y = field_node.bottom_wall_position_y;
@@ -246,8 +257,6 @@ func move(direction):
 		update_current_matrix_state();
 
 func move_to_position_in_matrix(target_position):
-	#print(field_node.pos2cell(target_position));
-	
 	position = target_position;
 
 func get_collisions():
@@ -272,6 +281,7 @@ func check_if_piece_will_collide(speed):
 # Returns an array of Vector2 containing all free positions.
 # A free position means a square of the size of the piece that's completely empty (including the empty blocks).
 func search_free_spaces(piece):
+	update_current_matrix_state();
 	var free_spaces = Array();
 	var piece_height = piece.height_in_blocks;
 	var piece_width = piece.width_in_blocks;
@@ -284,19 +294,20 @@ func search_free_spaces(piece):
 	var piece_offset_y = int(position_y) % cell_size;
 	
 	# Dividing by cell_size gives us the position in the matrix.
-	var position_x_in_matrix = (position_x - piece_offset_x) / cell_size;
-	var position_y_in_matrix = (position_y - piece_offset_y) / cell_size;
+	var column_in_matrix = (position_x - piece_offset_x) / cell_size;
+	var row_in_matrix = (position_y - piece_offset_y) / cell_size;
 	
-	var search_size = 4;
+	var search_size = Vector2(2, 2);
 	
-	var search_x_min = max(0, position_x_in_matrix - search_size);
-	var search_x_max = min(position_x_in_matrix + search_size, field_node.width_in_cells);
+	var search_x_min = max(0, column_in_matrix - search_size.x);
+	var search_x_max = min(column_in_matrix + search_size.x, field_node.width_in_cells);
 	
-	var search_y_min = max(0, position_y_in_matrix - search_size);
-	var search_y_max = min(position_y_in_matrix + search_size, field_node.height_in_cells);
+	var search_y_min = max(0, row_in_matrix - search_size.y);
+	var search_y_max = min(row_in_matrix + search_size.y, field_node.height_in_cells);
 	
-	for row in range(search_x_min, search_x_max):
-		for col in range(search_y_min, search_y_max):
+	#TO DO: try row and col changes.
+	for row in range(search_y_min, search_y_max):
+		for col in range(search_x_min, search_x_max):
 			var is_free_space = is_this_free_space(row, col, piece);
 			#print(is_free_space);
 			
@@ -305,17 +316,16 @@ func search_free_spaces(piece):
 	
 	return free_spaces;
 
-func is_this_free_space(position_x, position_y, piece):
+func is_this_free_space(row, col, piece):
 	var free_space = false;
 	var is_free = true;
 	
-	var search_x_min = max(0, position_x);
-	var search_x_max = min(position_x + piece.height_in_blocks - 1, field_node.width_in_cells - 1);
+	var search_x_min = max(0, col);
+	var search_x_max = min(col + piece.width_in_blocks, field_node.width_in_cells);
 	
-	var search_y_min = max(0, position_y);
-	var search_y_max = min(position_y + piece.width_in_blocks - 1, field_node.height_in_cells - 1);
+	var search_y_min = max(0, row);
+	var search_y_max = min(row + piece.height_in_blocks, field_node.height_in_cells);
 	
-	# There's a bug if you press rotate right when the piece is going to be placed. (or not?)
 	for i in range(search_x_min, search_x_max):
 		for j in range(search_y_min, search_y_max):
 			if(current_matrix_state[j][i] != 0):
@@ -323,7 +333,7 @@ func is_this_free_space(position_x, position_y, piece):
 				break;
 			
 			if(is_free):
-				free_space = Vector2(position_x, position_y);
+				free_space = Vector2(col, row);
 	
 	return free_space;
 
@@ -338,45 +348,141 @@ func get_closest_free_space(free_spaces_array):
 			var piece_to_A_distance = piece_current_position.distance_to(closest_free_space);
 			var piece_to_B_distance = piece_current_position.distance_to(free_spaces_array[i + 1]);
 			
-			"""
-			print("piece_current_position");
-			print(piece_current_position);
-			
-			print("closest_free_space");
-			print(closest_free_space);
-			
-			print("A:");
-			print(piece_to_A_distance);
-			
-			print("B:");
-			print(piece_to_B_distance);
-			"""
-			
-			
-			
 			if(piece_to_A_distance <= piece_to_B_distance):
 				closest_free_space = closest_free_space;
 			else:
 				closest_free_space = free_spaces_array[i + 1];
 	
-	print("closest_free_space");
-	print(closest_free_space);
-	
-	closest_free_space = field_node.cell2pos(closest_free_space) + Vector2(field_node.left_wall_position_x, 0);
+	closest_free_space = field_node.cell2pos(closest_free_space);
 	#print(closest_free_space + Vector2(field_node.left_wall_position_x, 0));
 	
 	return closest_free_space;
 
-func update_current_matrix_state():
+func find_Vector2_in_array(what, array):
+	if(array.size() > 0):
+		for i in array.size():
+			if(array[i] == what):
+				return i;
+
+func sort_array_by_distance_to_origin(free_spaces_array):
+	var free_spaces_array_copy = field_node.duplicate_object(free_spaces_array);
+	var sorted_array = Array();
+	
+	if(free_spaces_array_copy.size() > 0):
+		for i in free_spaces_array_copy.size():
+			var closest_space = get_closest_free_space(free_spaces_array_copy);
+			var closest_space_pos = find_Vector2_in_array(field_node.pos2cell(closest_space), free_spaces_array_copy);
+			sorted_array.push_back(free_spaces_array_copy[closest_space_pos]);
+			free_spaces_array_copy.remove(closest_space_pos);
+	
+	return sorted_array;
+
+func brute_force_reposition(free_spaces_array):
+	var sorted_free_spaces_array = sort_array_by_distance_to_origin(free_spaces_array);
+	var is_colliding = true;
+	
+	#sorted_free_spaces_array.pop_front();
+	#print(sorted_free_spaces_array);
+	update_current_matrix_state();
+	
+	if(sorted_free_spaces_array.size() > 0):
+		var tmp_pieces_instance_position = piece_instance.position;
+		var pos = field_node.cell2pos(sorted_free_spaces_array[0]);
+		piece_instance.position = pos;
+		is_colliding = field_node.is_piece_colliding(piece_instance, current_matrix_state);
+	
+		piece_instance.position = tmp_pieces_instance_position;
+		
+		for i in sorted_free_spaces_array.size():
+			tmp_pieces_instance_position = piece_instance.position;
+			pos = field_node.cell2pos(sorted_free_spaces_array[i]);
+			piece_instance.position = pos;
+			
+			if(field_node.is_piece_colliding(piece_instance, current_matrix_state)):
+				move_to_position_in_matrix(field_node.cell2pos(sorted_free_spaces_array[i]));
+				update_current_matrix_state();
+				piece_instance.position = pos;
+				break;
+			piece_instance.position = tmp_pieces_instance_position;
+	
+	#field_node.print_matrix(current_matrix_state);
+
+func brute_force_reposition_alt():
+	update_current_matrix_state();
+	var found_space = false;
+	var piece_height = piece_instance.height_in_blocks;
+	var piece_width = piece_instance.width_in_blocks;
+	
+	var original_position = field_node.pos2cell(position);
+	#print(original_position);
+	
+	var search_size = Vector2(3, 2);
+	
+	var search_x_min = max(0, original_position.x - search_size.x);
+	var search_x_max = min(original_position.x + search_size.x, field_node.width_in_cells);
+	
+	var search_y_min = max(0, original_position.y - search_size.y);
+	var search_y_max = min(original_position.y + search_size.y, field_node.height_in_cells);
+	
+	#print("HOLA");
+	#print(Vector2(search_x_min, search_x_max));
+	#print(Vector2(search_y_min, search_y_max));
+	
+	var tmp_pieces_instance_position = piece_instance.position;
+	var previous_position = Vector2(search_x_min, search_y_min);
+	#print(previous_position);
+	
 	piece_instance.position = position;
+	
+	print(field_node.is_piece_colliding(piece_instance));
+	var closest_distance = original_position.distance_to(field_node.pos2cell(previous_position));
+	
+	if(field_node.is_piece_colliding(piece_instance)):
+		for i in range(search_x_min, search_x_max):
+			for j in range(search_y_min, search_y_max):
+				var new_position = field_node.cell2pos(Vector2(i, j));
+				move_to_position_in_matrix(new_position);
+				piece_instance.position = new_position;
+				
+				if(field_node.is_piece_colliding(piece_instance)):
+					var distance_to_new_pos = original_position.distance_to(field_node.pos2cell(new_position));
+					var distance_to_prev_pos = original_position.distance_to(field_node.pos2cell(previous_position));
+					
+					#print("HEY");
+					#print(new_position);
+					#print(previous_position);
+					#print(closest_distance);
+					
+					if(distance_to_new_pos == closest_distance):
+						move_to_position_in_matrix(new_position);
+					else:
+						move_to_position_in_matrix(previous_position);
+						new_position = previous_position;
+					
+					found_space = true;
+				
+				#if(not found_space):
+				#	move_to_position_in_matrix(original_position);
+				
+				previous_position = new_position;
+	
+	piece_instance.position = tmp_pieces_instance_position;
+	
+	#if(not found_space):
+	#	move_to_position_in_matrix(original_position);
+	
+	pass
+
+func update_current_matrix_state():
+	#piece_instance.position = position;
 	
 	#if(current_update_time == 0): 
 	#	print("matrix:");
 	#	field_node.print_matrix(field_node.get_clean_matrix());
 	
 	#current_matrix_state = field_node.get_matrix_with_falling_piece(piece_instance);
-	current_matrix_state = field_node.get_clean_matrix();
-	piece_instance.position = Vector2(0, 0);
+	current_matrix_state = field_node.update_clean_matrix();
+	#piece_instance.position = Vector2(0, 0);
 
 # Add the piece in field_node as child.
 func place_piece():

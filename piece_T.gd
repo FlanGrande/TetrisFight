@@ -6,6 +6,8 @@ extends Node2D
 export var width_in_blocks = 3;
 export var height_in_blocks = 2;
 onready var animation_player_node = get_node("AnimationPlayer");
+var current_animation = "rotate0";
+var blocks_position = Array();
 
 func _ready():
 	# Called every time the node is added to the scene.
@@ -23,9 +25,24 @@ func rotate(rotation_degrees):
 	width_in_blocks = height_in_blocks;
 	height_in_blocks = tmp;
 	
-	animation_player_node.play("rotate" + str(rotation_degrees));
+	set_animation(rotation_degrees);
 	
 	pass
 
+func set_animation(rotation_degrees):
+	current_animation = "rotate" + str(rotation_degrees);
+	animation_player_node.play(current_animation);
+	
+
 func change_colour(colour):
 	modulate = colour;
+
+func get_blocks_position():
+	var children = get_children();
+	blocks_position = Array();
+	
+	for i in children.size():
+		if(children[i].get_name().match("*piece*")):
+			blocks_position.push_back(children[i].position);
+			
+	return blocks_position;

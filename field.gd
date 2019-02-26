@@ -55,12 +55,14 @@ func initialize_matrix():
 func add_to_matrix(x, y, block_instance):
 	if(x >= 0 and y >= 0 and x < width_in_cells and y < height_in_cells):
 		pieces_matrix[y][x] = field_node.get_path_to(block_instance); #inverted x and y.
+	else:
+		print("Bad values in add_to_matrix");
 
 func get_matrix():
 	return pieces_matrix;
 
-func get_clean_matrix():
-	var clean_matrix = clean_matrix(pieces_matrix);
+func update_clean_matrix():
+	clean_matrix = clean_matrix(pieces_matrix);
 	return clean_matrix;
 
 func get_matrix_with_falling_piece(piece):
@@ -83,20 +85,33 @@ func place_piece(piece, colour):
 	place_piece_on_field(piece, colour);
 	#print_matrix();
 
-func transform_into_blocks(piece):
+func transform_into_blocks(piece, offset = false):
 	var blocks_array = Array();
+	
 	var children = piece.get_children();
+	#var blocks_position = piece.get_blocks_position();
+	
+	#print(blocks_position);
+	#print("piece_rotation " + str(piece_rotation));
+	#print("piece_instance.rotation: " + str(piece.current_animation));
 	
 	for row in children.size():
 		if(children[row].get_name().match("*piece*")):
 			var tmp_block = children[row];
 			var block_instance = load("res://piece.tscn").instance();
 			
-			block_instance.position.x = piece.position.x + tmp_block.position.x - position.x; #adjust piece coordinates to match field coordinates.
-			block_instance.position.y = piece.position.y + tmp_block.position.y - position.y; #adjust piece coordinates to match field coordinates.
+			block_instance.position.x = piece.position.x + tmp_block.position.x; #adjust piece coordinates to match field coordinates.
+			block_instance.position.y = piece.position.y + tmp_block.position.y; #adjust piece coordinates to match field coordinates.
 			block_instance.get_node("StaticBody2D/CollisionShape2D").disabled = false;
 			
-			blocks_array.push_back(block_instance.duplicate());
+			#print("bloque:")
+			#print(pos2cell(block_instance.position));
+			
+			if(offset):
+				block_instance.position.x -= position.x;
+				block_instance.position.y -= position.y;
+			
+			blocks_array.push_back(block_instance); #.duplicate()
 	
 	return blocks_array;
 
@@ -104,15 +119,7 @@ func get_block_position_in_matrix(block):
 	var position_x = block.position.x;
 	var position_y = block.position.y;
 	
-	# These are used to make sure the block will be in a position aligned to the grid.
-	var piece_offset_x = int(block.position.x) % cell_size;
-	var piece_offset_y = int(block.position.y) % cell_size;
-	
-	# Dividing by cell_size gives us the position in the matrix.
-	var position_x_in_matrix = (position_x - piece_offset_x) / cell_size;
-	var position_y_in_matrix = (position_y - piece_offset_y) / cell_size;
-	
-	return Vector2(position_x_in_matrix, position_y_in_matrix);
+	return pos2cell(Vector2(position_x, position_y));
 
 func place_piece_on_field(piece, colour):
 	var blocks_array = transform_into_blocks(piece);
@@ -121,17 +128,21 @@ func place_piece_on_field(piece, colour):
 		var current_block = blocks_array[row];
 		var block_position_in_matrix = get_block_position_in_matrix(current_block);
 		
+		print(block_position_in_matrix);
+		
 		current_block.change_colour(colour);
+		current_block.position.x -= position.x;
+		current_block.position.y -= position.y;
 		add_child(current_block);
 		add_to_matrix(block_position_in_matrix.x, block_position_in_matrix.y, current_block);
 
 # Return matrix with the piece as well.
 func add_falling_piece_to_matrix(piece, matrix):
-	var blocks_array = transform_into_blocks(piece);
+	var blocks_array = transform_into_blocks(piece, true);
 	var matrix_copy = duplicate_object(matrix);
 	
-	for row in blocks_array.size():
-		var current_block = blocks_array[row];
+	for i in blocks_array.size():
+		var current_block = blocks_array[i];
 		var block_position_in_matrix = get_block_position_in_matrix(current_block);
 		
 		var position_x_in_matrix = block_position_in_matrix.x;
@@ -141,6 +152,46 @@ func add_falling_piece_to_matrix(piece, matrix):
 			matrix_copy[position_y_in_matrix][position_x_in_matrix] = 1;
 	
 	return matrix_copy;
+
+func is_piece_colliding(piece):
+	var collision = false;
+	var blocks_array = transform_into_blocks(piece);
+	#clean_matrix = update_clean_matrix();
+	
+	#print_matrix(pieces_matrix);
+	
+	for i in blocks_array.size():
+		#blocks_array[i].position += position;
+		var block_position_in_matrix = get_block_position_in_matrix(blocks_array[i]);
+		var out_of_boundaries = false;
+		
+		#block_position_in_matrix = Vector2(block_position_in_matrix.x, block_position_in_matrix.y);
+		#print(block_position_in_matrix);
+		#print(pos2cell(tmp_block.position));
+		
+		if(block_position_in_matrix.x < 0 or block_position_in_matrix.x >= width_in_cells or block_position_in_matrix.y >= height_in_cells):
+			out_of_boundaries = true;
+		
+			#if(block_position_in_matrix.x < 0):
+			#	block_position_in_matrix.x = max(0, block_position_in_matrix.x);
+			
+			#if(block_position_in_matrix.x >= width_in_cells):
+			#	block_position_in_matrix.x = min(block_position_in_matrix.x, width_in_cells - 1);
+			
+			#if(block_position_in_matrix.y < 0):
+			#	block_position_in_matrix.y = max(0, block_position_in_matrix.y);
+			
+			#if(block_position_in_matrix.y >= height_in_cells):
+			#	block_position_in_matrix.y = min(block_position_in_matrix.y, height_in_cells - 1);
+		
+		#print(block_position_in_matrix.x);
+		#print(matrix_copy[block_position_in_matrix.y][block_position_in_matrix.x]);
+		if(out_of_boundaries or clean_matrix[block_position_in_matrix.y][block_position_in_matrix.x] == 1):
+			#print("hola");
+			collision = true;
+			break;
+	
+	return collision;
 
 func clean_matrix(matrix):
 	var matrix_copy = duplicate_object(matrix);
@@ -207,4 +258,4 @@ func pos2cell(position):
 	return Vector2(position_x_in_matrix, position_y_in_matrix);
 
 func cell2pos(position_in_matrix):
-	return Vector2(position_in_matrix.x * cell_size, position_in_matrix.y * cell_size);
+	return Vector2(position_in_matrix.x * cell_size, position_in_matrix.y * cell_size) + position;

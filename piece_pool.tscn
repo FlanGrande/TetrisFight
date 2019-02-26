@@ -9,7 +9,7 @@
 [ext_resource path="res://piece_Z_inv.tscn" type="PackedScene" id=7]
 [ext_resource path="res://piece_Box.tscn" type="PackedScene" id=8]
 
-[node name="piece_pool" type="Node2D" index="0"]
+[node name="piece_pool" type="Node2D"]
 
 script = ExtResource( 1 )
 _sections_unfolded = [ "Transform" ]
